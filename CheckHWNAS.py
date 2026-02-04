@@ -23,18 +23,11 @@ for idx in range(5**6):
             max_epochs = 200
 
         metrics = nas_api.query_by_index(idx, dataset, hp = str(max_epochs))
-
-        # print("The HW_metrics (type: {}) for No.{} @ {} under NAS-Bench-201: {}".format(type(HW_metrics),   idx,
-        #                                                                        dataset,
-        #                                                                        HW_metrics))
-        
         metrics_seed = metrics[next(iter(metrics))]
-
         all_metrics = HW_metrics
         all_metrics["flop"] = metrics_seed.flop
         all_metrics["test_acc"] = metrics_seed.eval_acc1es[f"ori-test@{max_epochs-1}"]
         all_metrics["dataset"] = dataset
-
         all_archs = metrics_seed.arch_config["arch_str"].split("|")
 
         split_arch = [arch.split("~")[0] for arch in all_archs if arch != "" and arch != "+"]
