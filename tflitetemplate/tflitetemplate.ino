@@ -33,56 +33,52 @@ limitations under the License.
 #include <MicroTFLite.h>
 
 // include static array definition of pre-trained model
-#include "model0.h"
+#include "model25.h"
 
-// The Tensor Arena memory area is used by TensorFlow Lite to store input, output and intermediate tensors
-constexpr int kTensorArenaSize = 20 * 1024;
-alignas(16) uint8_t tensor_arena[kTensorArenaSize];
+// The Tensor Arena memory area is used by TensorFlow Lite to store input, output and intermediate tensors - 9808 needed reported for model 25
+constexpr int kTensorArenaSize = 10809;
+alignas(16) static uint8_t tensor_arena[kTensorArenaSize];
 
 void setup()
 {
     // Initialize serial communications and wait for Serial Monitor to be opened
     Serial.begin(115200);
-
+    while (!Serial)
+        ;
     Serial.println("Initializing TensorFlow Lite Micro Interpreter...");
+}
 
+void loop()
+{
     // Initialize the model
     if (!ModelInit(model, tensor_arena, kTensorArenaSize)){
         Serial.println("Model initialization failed!");
-        while (true)
-            ;
     }
     Serial.println("Model initialization done.");
 
     // Optional: Print model metadata
     ModelPrintMetadata();
-
     // Optional: Print input and output tensor dimensions
     ModelPrintInputTensorDimensions();
     ModelPrintOutputTensorDimensions();
-
-    Serial.println("");
-    Serial.println("Please, input a float number between 0 and 6.28");
-}
-
-void loop()
-{
-    // Obtain and print the output from the model's output tensor
-    // cifar 10 = 8*3*32*32 24576
-    /*if (!ModelSetInput(x, 0, true)){
-        Serial.println("Failed to set input!");
+    /*int input = 0;
+    for (int i = 0; i < 1024; i++) {
+        if (!ModelSetInput(5, i, false))
+        {
+            Serial.println("Failed to set input!");
+            return;
+        }
+    }*/
+    /*Serial.println("random initialization done");
+    ModelPrintMetadata();
+    // Run inference, and report if an error occurs
+    if (!ModelRunInference()){
+        Serial.println("RunInference Failed!");
         return;
     }
-    float y = ModelGetOutput(0);
-
-    Serial.print("Inferred Sin of ");
-    Serial.print(x);
-    Serial.print(" = ");
-    Serial.println(y, 2);
-    Serial.print("Actual Sin of ");
-    Serial.print(x);
-    Serial.print(" = ");
-    Serial.println(sin(x), 2);*/
+    Serial.println("random initialization done");*/
+    //ModelRunInference();
+    //ModelGetOutput(0, false);
     
 }
 
