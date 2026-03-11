@@ -1,27 +1,53 @@
-from esp_ppq import QuantizationSettingFactory, TorchExecutor, BaseGraph
-import onnxruntime as ort
-from hw_nas_bench_api import HWNASBenchAPI as HWAPI
-from nas_201_api import NASBench201API as API
-import pandas as pd
-from xautodl.models import get_cell_based_tiny_net  # this module is in AutoDL-Projects/lib/models
-#nas_api = API('NAS-Bench-201-v1_1-096897.pth')
-import os
-import numpy as np
+import bz2
 import onnx
-from esp_ppq.api import get_target_platform, espdl_quantize_torch, espdl_quantize_onnx
-from torch.utils.data import DataLoader, TensorDataset
+import os
+import pickle
+import time
 import torch
 import torchvision
-import torchvision.transforms as transforms
 
-target="esp32s3"
-num_of_bits=8
+import numpy as np
+import onnxruntime as ort
+import pandas as pd
+import torchvision.transforms as transforms
+from esp_ppq import TorchExecutor, QuantizationSettingFactory
+from esp_ppq.api import espdl_quantize_onnx
+from torch.utils.data import DataLoader
+
+from hw_nas_bench_api import HWNASBenchAPI as HWAPI
+from xautodl.models import get_cell_based_tiny_net  # this module is in AutoDL-Projects/lib/models
+
+# nas_api = API('NAS-Bench-201-v1_0-e61699.pth', )
+
+
+target = "esp32s3"
+
 quant_setting = QuantizationSettingFactory.espdl_setting()
 quant_setting.equalization = True
-quant_setting.equalization_setting.iterations = 4
-quant_setting.equalization_setting.value_threshold = .4
-quant_setting.equalization_setting.opt_level = 2
-quant_setting.equalization_setting.interested_layers = None
+# quant_setting.equalization_setting.iterations = 5
+# quant_setting.equalization_setting.value_threshold = 0.5
+# quant_setting.equalization_setting.opt_level = 2
+
+def evaluate_top1(executor, loader):
+    correct = 0
+    total = 0
+
+    for images, labels in loader:
+        # run quantized graph
+        out = executor(images)   # sometimes executor(*[images]) is needed
+
+        # TorchExecutor may return list/tuple
+        if isinstance(out, (list, tuple)):
+            logits = out[0]
+        else:
+            logits = out
+
+        preds = torch.argmax(logits, dim=1)
+
+        correct += (preds == labels).sum().item()
+        total += labels.numel()
+
+    return correct / total
 
 def convert_tflite_to_header(tflite_content, output_header_path, float16=False):
     hex_lines = [', '.join([f'0x{byte:02x}' for byte in tflite_content[i:i + 12]]) for i in
@@ -37,10 +63,10 @@ def convert_tflite_to_header(tflite_content, output_header_path, float16=False):
         header_file.write(f'{hex_array}\n')
         header_file.write('};\n\n')
 
+
 hw_api = HWAPI("HW-NAS-Bench-v1_0.pickle", search_space="nasbench201")
 collectedhwnas = pd.read_csv("all_hwnas.csv")
 all_data = []
-import subprocess
 
 if not os.path.exists("models/torch"):
     os.makedirs("models/torch")
@@ -60,37 +86,55 @@ batchsize = 1
 calib_loader = DataLoader(
     testset, batch_size=batchsize, shuffle=False, drop_last=True
 )
+
+
 def collate_x_only(input):
     return input[0]
 
-idx=4
+
+idx = 13
 for dataset in ["cifar10"]:
+    init_start = time.process_time()
     HW_metrics = hw_api.query_by_index(idx, dataset)
     netconfig = hw_api.get_net_config(idx, dataset)
-    network = get_cell_based_tiny_net(netconfig)  # create the network from configuration
+    weights_path = f'./data/NATS-tss-v1_0-3ffb9-full/{idx:06d}.pickle.pbz2'  # or .pkl
+    with bz2.BZ2File(weights_path, "rb") as f:
+        data = pickle.load(f)
+    validkey = []
+    seed = 999
+    for key in data.keys():
+        if key in data: validkey.append(key)
+
+    if not validkey:
+        print("No valid data found")
+        exit()
+
+    key = max(validkey)
+    for innerkey in data[key]["all_results"]:
+        if isinstance(innerkey[0], str) and (innerkey[0] == 'cifar10'):
+            _, seed = innerkey
+    ourdict = data[key]["all_results"][('cifar10', seed)]["net_state_dict"]
+    network = get_cell_based_tiny_net(netconfig)
+    network.load_state_dict(ourdict)
     x = torch.rand([1, 3, 32, 32], dtype=torch.float32)
     network.eval()
-    out_data = network(x)
-    torch.onnx.export(network.eval(), x, f"models/onnx/model{idx}.onnx", opset_version=18)
-
+    init_end = time.process_time()
+    print(f"CPU time init:  {init_end - init_start:.3f} s")
+    acc = evaluate_top1(network, calib_loader)
+    transform_start = time.process_time()
+    print(f"Top-1 accuracy: {acc * 100:.2f}%")
+    torch.onnx.export(network.eval(), x, f"models/onnx/model{idx}.onnx", opset_version=18, verbose=0)
     onnxmodel = onnx.load(f"models/onnx/model{idx}.onnx")
     onnx.checker.check_model(onnxmodel)
     sess = ort.InferenceSession(f"models/onnx/model{idx}.onnx", providers=["CPUExecutionProvider"])
-    input0 = sess.get_inputs()[0]
-    print("Input name:", input0.name, "shape:", input0.shape, "dtype:", input0.type)
-    print("Outputs:", [o.name for o in sess.get_outputs()])
-
-    # run prediction
-    t = x.detach().cpu().numpy().astype(np.float32)
-    outputs = sess.run(None, {input0.name: t})
-    y = outputs[0]
-    print("Output shape:", y.shape, "dtype:", y.dtype) #collate_fn=collate_x_only,
-    quant_ppq_graph = espdl_quantize_onnx(f"models/onnx/model{idx}.onnx", f"models/espdl/model{idx}.espdl", collate_fn=collate_x_only, calib_dataloader=calib_loader, calib_steps=32, error_report=True, verbose=0, input_shape=[batchsize, 3, 32, 32])
+    quant_ppq_graph = espdl_quantize_onnx(f"models/onnx/model{idx}.onnx", f"models/espdl/model{idx}.espdl",
+                                          collate_fn=collate_x_only, calib_dataloader=calib_loader, calib_steps=32,
+                                          error_report=False, verbose=0,
+                                          input_shape=[batchsize, 3, 32, 32])  # setting=quant_setting)
     executor = TorchExecutor(quant_ppq_graph, device='cpu')
-    print(testset.data[0])
     dataset = calib_loader.dataset
-    #for data in iter(calib_loader):
-
-    results = executor(next(iter(calib_loader))[0])
-    print("Results:", results)
-
+    transform_end = time.process_time()
+    print(f"CPU time Transform:  {transform_end - transform_start:.3f} s")
+    acc = evaluate_top1(executor, calib_loader)
+    print(f"Top-1 accuracy: {acc * 100:.2f}%")
+    ## TODO: Extract Memory with esp-idf
