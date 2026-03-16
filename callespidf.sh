@@ -18,9 +18,8 @@ fi
 "/Users/ninaherrmann/esp/esp-idf/install.sh"
 . $ESP_EXPORT
 
-for f in *.espdl; do
+for f in models/espdl/*.espdl; do
     [ -e "$f" ] || continue   # skip literal pattern if no match
-    echo "Processing: $f"  espdlmodelpath="models/espdl/model${idx}.espdl"
 
     if [[ $f =~ model([0-9]+)_([0-9]+)\.espdl ]]; then
         idx="${BASH_REMATCH[1]}"
@@ -28,16 +27,19 @@ for f in *.espdl; do
         echo "First number: $idx"
         echo "Second number: $seed"
     fi
+    echo "Processing: models/espdl/model${idx}_${seed}.espdl"
 
+    espmodelpath="models/espdl/model${idx}_${seed}.espdl"
     dest="${PROGRAM_PATH}/model.espdl"
-    echo "Copying $espdlmodelpath -> $dest"
+    echo "Copying $espmodelpath -> $dest"
     rm -f "$dest"
-    cp "$espdlmodelpath" "$dest"
+    cp "$espmodelpath" "$dest"
     # shellcheck disable=SC2164
     cd "how_to_run_model"
     idf.py set-target esp32s3
     idf.py build
-    /Users/ninaherrmann/.espressif/python_env/idf5.5_py3.9_env/bin/python "/Users/ninaherrmann/esp/v5.5.2/esp-idf/tools/idf_size.py" "./build/model_in_flash_rodata.map" > output.txt
-    python3 convert_to_csv.py "output.json" --output "memory_results.csv" --idx ${idx} --seed ${seed} --dataset "cifar10"
+    /Users/ninaherrmann/.espressif/python_env/idf5.5_py3.9_env/bin/python "/Users/ninaherrmann/esp/v5.5.2/esp-idf/tools/idf_size.py" "./build/model_in_flash_rodata.map" --format "json" > ../output.json
     cd ".."
+    pip install pandas
+    python3 convert_to_csv.py "output.json" --output "memory_results.csv" --idx ${idx} --seed ${seed} --dataset "cifar10"
 done
