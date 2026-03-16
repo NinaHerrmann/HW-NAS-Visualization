@@ -117,36 +117,39 @@ for idx in idxs:
         for innerkey in data[key]["all_results"]:
             if isinstance(innerkey[0], str) and (innerkey[0] == 'cifar10'):
                 _, seed = innerkey
-        ourdict = data[key]["all_results"][('cifar10', seed)]["net_state_dict"]
-        network = get_cell_based_tiny_net(netconfig)
-        network.load_state_dict(ourdict)
-        x = torch.rand([1, 3, 32, 32], dtype=torch.float32)
-        network.eval()
-        init_end = time.process_time()
-        acc = evaluate_top1(network, calib_loader)
-        transform_start = time.process_time()
-        mask = (
-                (recordedacc['seed'] == seed) &
-                (recordedacc['arch_index'] == idx) &
-                (recordedacc['dataset'] == 'cifar10')
-        )
-        shouldbe = recordedacc.loc[mask, 'test_acc']
-        torch.onnx.export(network.eval(), x, f"models/onnx/model{idx}.onnx", opset_version=18, verbose=0)
-        onnxmodel = onnx.load(f"models/onnx/model{idx}.onnx")
-        onnx.checker.check_model(onnxmodel)
-        sess = ort.InferenceSession(f"models/onnx/model{idx}.onnx", providers=["CPUExecutionProvider"])
-        quant_ppq_graph = espdl_quantize_onnx(f"models/onnx/model{idx}.onnx", f"models/espdl/model{idx}.espdl",
-                                              collate_fn=collate_x_only, calib_dataloader=calib_loader, calib_steps=32,
-                                              error_report=False, verbose=0,
-                                              input_shape=[batchsize, 3, 32, 32])  # setting=quant_setting)
-        executor = TorchExecutor(quant_ppq_graph, device='cpu')
-        dataset = calib_loader.dataset
-        transform_end = time.process_time()
-        accqu = evaluate_top1(executor, calib_loader)
-        if not os.path.exists('result.csv'):
+            else:
+                continue
+
+            ourdict = data[key]["all_results"][('cifar10', seed)]["net_state_dict"]
+            network = get_cell_based_tiny_net(netconfig)
+            network.load_state_dict(ourdict)
+            x = torch.rand([1, 3, 32, 32], dtype=torch.float32)
+            network.eval()
+            init_end = time.process_time()
+            acc = evaluate_top1(network, calib_loader)
+            transform_start = time.process_time()
+            mask = (
+                    (recordedacc['seed'] == seed) &
+                    (recordedacc['arch_index'] == idx) &
+                    (recordedacc['dataset'] == 'cifar10')
+            )
+            shouldbe = recordedacc.loc[mask, 'test_acc']
+            torch.onnx.export(network.eval(), x, f"models/onnx/model{idx}_{seed}.onnx", opset_version=18, verbose=0)
+            onnxmodel = onnx.load(f"models/onnx/model{idx}_{seed}.onnx")
+            onnx.checker.check_model(onnxmodel)
+            sess = ort.InferenceSession(f"models/onnx/model{idx}_{seed}.onnx", providers=["CPUExecutionProvider"])
+            quant_ppq_graph = espdl_quantize_onnx(f"models/onnx/model{idx}_{seed}.onnx", f"models/espdl/model{idx}_{seed}.espdl",
+                                                collate_fn=collate_x_only, calib_dataloader=calib_loader, calib_steps=32,
+                                                error_report=False, verbose=0,
+                                                input_shape=[batchsize, 3, 32, 32])  # setting=quant_setting)
+            executor = TorchExecutor(quant_ppq_graph, device='cpu')
+            dataset = calib_loader.dataset
+            transform_end = time.process_time()
+            accqu = evaluate_top1(executor, calib_loader)
+            if not os.path.exists('result.csv'):
+                with open('result.csv', 'a', encoding='utf-8') as f:
+                    f.write("idx,seed,dataset,test_acc,recorded_test_acc,quant_test_acc,rec_memory,rec_flops\n")
+            line = f"{idx},{seed},cifar10,{shouldbe.iloc[0]},{acc * 100:.2f},{accqu * 100:.2f},TODO,TODO\n"
             with open('result.csv', 'a', encoding='utf-8') as f:
-                f.write("idx,seed,dataset,test_acc,recorded_test_acc,quant_test_acc,rec_memory,rec_flops\n")
-        line = f"{idx},{seed},cifar10,{shouldbe.iloc[0]},{acc * 100:.2f},{accqu * 100:.2f},TODO,TODO\n"
-        with open('result.csv', 'a', encoding='utf-8') as f:
-            f.write(line)
-        ## TODO: Extract Memory with esp-idf
+                f.write(line)
+            ## TODO: Extract Memory with esp-idf
