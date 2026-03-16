@@ -5,7 +5,7 @@ import pickle
 import time
 import torch
 import torchvision
-
+import subprocess
 import numpy as np
 import onnxruntime as ort
 import pandas as pd
@@ -95,7 +95,7 @@ def collate_x_only(input):
     return input[0]
 
 recordedacc = pd.read_csv("all_hwnas.csv")
-idxs = [9, 13, 18, 26, 30]
+idxs = [9]
 for idx in idxs:
     for dataset in ["cifar10"]:
         init_start = time.process_time()
