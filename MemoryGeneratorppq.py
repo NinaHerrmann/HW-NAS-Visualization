@@ -5,15 +5,13 @@ import pickle
 import time
 import torch
 import torchvision
-import subprocess
-import numpy as np
 import onnxruntime as ort
 import pandas as pd
 import torchvision.transforms as transforms
 from esp_ppq import TorchExecutor, QuantizationSettingFactory
 from esp_ppq.api import espdl_quantize_onnx
 from torch.utils.data import DataLoader
-
+import argparse
 from hw_nas_bench_api import HWNASBenchAPI as HWAPI
 from xautodl.models import get_cell_based_tiny_net  # this module is in AutoDL-Projects/lib/models
 
@@ -27,7 +25,23 @@ quant_setting.equalization = True
 # quant_setting.equalization_setting.iterations = 5
 # quant_setting.equalization_setting.value_threshold = 0.5
 # quant_setting.equalization_setting.opt_level = 2
+def build_parser():
+    p = argparse.ArgumentParser(description="Example: accept a list of integers")
+    p.add_argument('-n', '--nums',
+                   nargs='+',            # one or more; use '*' to allow zero
+                   type=int,
+                   metavar='N',
+                   help='list of integers (e.g. --nums 1 2 3)')
+    return p
+def parse_args():
+    p = build_parser()
+    args = p.parse_args()
 
+    nums = args.nums if args.nums is not None else []
+    if args.nums is not None:
+        nums = args.nums
+    args.nums_parsed = nums
+    return args.nums_parsed
 def evaluate_top1(executor, loader):
     correct = 0
     total = 0
@@ -95,7 +109,8 @@ def collate_x_only(input):
     return input[0]
 
 recordedacc = pd.read_csv("all_hwnas.csv")
-idxs = [9]
+
+idxs = parse_args()
 for idx in idxs:
     for dataset in ["cifar10"]:
         init_start = time.process_time()
@@ -152,4 +167,3 @@ for idx in idxs:
             line = f"{idx},{seed},cifar10,{shouldbe.iloc[0]},{acc * 100:.2f},{accqu * 100:.2f},TODO,TODO\n"
             with open('result.csv', 'a', encoding='utf-8') as f:
                 f.write(line)
-            ## TODO: Extract Memory with esp-idf
