@@ -8,7 +8,7 @@ import torchvision
 import onnxruntime as ort
 import torchvision.transforms as transforms
 from esp_ppq import TorchExecutor, QuantizationSettingFactory
-from esp_ppq.api import espdl_quantize_onnx
+from esp_ppq.api import espdl_quantize_onnx, espdl_quantize_torch
 from torch.utils.data import DataLoader
 import argparse
 from hw_nas_bench_api import HWNASBenchAPI as HWAPI
@@ -146,11 +146,11 @@ for idx in idxs:
             init_end = time.process_time()
             acc = evaluate_top1(network, calib_loader)
             transform_start = time.process_time()
-            torch.onnx.export(network.eval(), x, f"{model_path}/onnx/model{idx}_{seed}.onnx", opset_version=18, verbose=0)
-            onnxmodel = onnx.load(f"{model_path}/onnx/model{idx}_{seed}.onnx")
-            onnx.checker.check_model(onnxmodel)
-            sess = ort.InferenceSession(f"{model_path}/onnx/model{idx}_{seed}.onnx", providers=["CPUExecutionProvider"])
-            quant_ppq_graph = espdl_quantize_onnx(f"{model_path}/onnx/model{idx}_{seed}.onnx", f"{model_path}/espdl/model{idx}_{seed}.espdl",
+            # torch.onnx.export(network.eval(), x, f"{model_path}/onnx/model{idx}_{seed}.onnx", opset_version=18, verbose=0)
+            # onnxmodel = onnx.load(f"{model_path}/onnx/model{idx}_{seed}.onnx")
+            # onnx.checker.check_model(onnxmodel)
+            # sess = ort.InferenceSession(f"{model_path}/onnx/model{idx}_{seed}.onnx", providers=["CPUExecutionProvider"])
+            quant_ppq_graph = espdl_quantize_torch(network, f"{model_path}/espdl/model{idx}_{seed}.espdl",
                                                 collate_fn=collate_x_only, calib_dataloader=calib_loader, calib_steps=32,
                                                 error_report=False, verbose=0,
                                                 input_shape=[batchsize, 3, 32, 32])  # setting=quant_setting)
