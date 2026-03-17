@@ -1,11 +1,9 @@
 import bz2
-import onnx
 import os
 import pickle
 import time
 import torch
 import torchvision
-import onnxruntime as ort
 import torchvision.transforms as transforms
 from esp_ppq import TorchExecutor, QuantizationSettingFactory
 from esp_ppq.api import espdl_quantize_onnx, espdl_quantize_torch
@@ -67,7 +65,7 @@ def evaluate_top1(executor, loader):
 
         correct += (preds == labels).sum().item()
         total += labels.numel()
-
+    print(f"labeled {total} correct: {correct} acc {100 * correct / total}")
     return correct / total
 
 def convert_tflite_to_header(tflite_content, output_header_path, float16=False):
@@ -99,13 +97,13 @@ std  = (0.2470, 0.2435, 0.2616)
 transform = transforms.Compose(
     [transforms.ToTensor(),
      transforms.Normalize(mean, std)])
+print(f"read data {resultpath}/data")
 testset = torchvision.datasets.CIFAR10(root=f'{resultpath}/data', train=False, download=True, transform=transform)
 
 batchsize = 1
 calib_loader = DataLoader(
     testset, batch_size=batchsize, shuffle=False, drop_last=True
 )
-
 
 def collate_x_only(input):
     return input[0]
@@ -114,16 +112,17 @@ if not os.path.exists(f"{model_path}/onnx"):
     os.makedirs(f"{model_path}/onnx")
 if not os.path.exists(f"{model_path}/espdl"):
     os.makedirs(f"{model_path}/espdl")
+
 for idx in idxs:
     for dataset in ["cifar10"]:
         init_start = time.process_time()
         HW_metrics = hw_api.query_by_index(idx, dataset)
         netconfig = hw_api.get_net_config(idx, dataset)
+        print(f"read {weightpath}/{idx:06d}.pickle.pbz2")
         weights_path = f'{weightpath}/{idx:06d}.pickle.pbz2'  # or .pkl
         with bz2.BZ2File(weights_path, "rb") as f:
             data = pickle.load(f)
         validkey = []
-        seed = 999
         for key in data.keys():
             if key in data: validkey.append(key)
 
@@ -139,6 +138,7 @@ for idx in idxs:
                 continue
 
             ourdict = data[key]["all_results"][('cifar10', seed)]["net_state_dict"]
+            print(ourdict)
             network = get_cell_based_tiny_net(netconfig)
             network.load_state_dict(ourdict)
             x = torch.rand([1, 3, 32, 32], dtype=torch.float32)
@@ -146,10 +146,6 @@ for idx in idxs:
             init_end = time.process_time()
             acc = evaluate_top1(network, calib_loader)
             transform_start = time.process_time()
-            # torch.onnx.export(network.eval(), x, f"{model_path}/onnx/model{idx}_{seed}.onnx", opset_version=18, verbose=0)
-            # onnxmodel = onnx.load(f"{model_path}/onnx/model{idx}_{seed}.onnx")
-            # onnx.checker.check_model(onnxmodel)
-            # sess = ort.InferenceSession(f"{model_path}/onnx/model{idx}_{seed}.onnx", providers=["CPUExecutionProvider"])
             quant_ppq_graph = espdl_quantize_torch(network, f"{model_path}/espdl/model{idx}_{seed}.espdl",
                                                 collate_fn=collate_x_only, calib_dataloader=calib_loader, calib_steps=32,
                                                 error_report=False, verbose=0,
@@ -162,5 +158,6 @@ for idx in idxs:
                 with open('result.csv', 'a', encoding='utf-8') as f:
                     f.write("idx,seed,dataset,recorded_test_acc,quant_test_acc\n")
             line = f"{idx},{seed},cifar10,{acc * 100:.2f},{accqu * 100:.2f}\n"
+            print(line)
             with open(f'{resultpath}/result.csv', 'a', encoding='utf-8') as f:
                 f.write(line)
