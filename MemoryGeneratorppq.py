@@ -146,6 +146,8 @@ for idx in idxs:
             init_end = time.process_time()
             acc = evaluate_top1(network, calib_loader)
             transform_start = time.process_time()
+            torch.onnx.export(network.eval(), x, f"{model_path}/onnx/model{idx}_{seed}.onnx", opset_version=18,
+                              verbose=0)
             quant_ppq_graph = espdl_quantize_torch(network, f"{model_path}/espdl/model{idx}_{seed}.espdl",
                                                 collate_fn=collate_x_only, calib_dataloader=calib_loader, calib_steps=32,
                                                 error_report=False, verbose=0,
