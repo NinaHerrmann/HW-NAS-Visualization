@@ -19,7 +19,7 @@ fi
 . $ESP_EXPORT
 
 
-for f in /scratch/tmp/n_herr03/NATS_Benchmark/models/testmodels/model${1}*.espdl; do
+for f in /scratch/tmp/n_herr03/NATS_Benchmark/models/espdl/model${1}*.espdl; do
     [ -e "$f" ] || continue   # skip literal pattern if no match
     if [[ $f =~ model([0-9]+)_([0-9]+)\.espdl ]]; then
         idx="${BASH_REMATCH[1]}"
@@ -29,7 +29,7 @@ for f in /scratch/tmp/n_herr03/NATS_Benchmark/models/testmodels/model${1}*.espdl
     fi
     echo "Processing: /scratch/tmp/n_herr03/NATS_Benchmark/models/espdl/model${idx}_${seed}.espdl"
 
-    espmodelpath="/scratch/tmp/n_herr03/NATS_Benchmark/models/testmodels/model${idx}_${seed}.espdl"
+    espmodelpath="/scratch/tmp/n_herr03/NATS_Benchmark/models/espdl/model${idx}_${seed}.espdl"
     dest="${PROGRAM_PATH}/model.espdl"
     echo "Copying $espmodelpath -> $dest"
     rm -f "$dest"
