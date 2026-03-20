@@ -57,7 +57,7 @@ def evaluate_top1(executor, loader):
 
         # TorchExecutor may return list/tuple
         if isinstance(out, (list, tuple)):
-            logits = out[0]
+            logits = out[1]
         else:
             logits = out
 
@@ -65,7 +65,7 @@ def evaluate_top1(executor, loader):
 
         correct += (preds == labels).sum().item()
         total += labels.numel()
-    print(f"labeled {total} correct: {correct} acc {100 * correct / total}")
+    #print(f"labeled {total} correct: {correct} acc {100 * correct / total}")
     return correct / total
 
 def convert_tflite_to_header(tflite_content, output_header_path, float16=False):
@@ -97,7 +97,7 @@ std  = (0.2470, 0.2435, 0.2616)
 transform = transforms.Compose(
     [transforms.ToTensor(),
      transforms.Normalize(mean, std)])
-print(f"read data {resultpath}/data")
+#print(f"read data {resultpath}/data")
 testset = torchvision.datasets.CIFAR10(root=f'{resultpath}/data', train=False, download=True, transform=transform)
 
 batchsize = 1
@@ -146,8 +146,8 @@ for idx in idxs:
             init_end = time.process_time()
             acc = evaluate_top1(network, calib_loader)
             transform_start = time.process_time()
-            torch.onnx.export(network.eval(), x, f"{model_path}/onnx/model{idx}_{seed}.onnx", opset_version=18,
-                              verbose=0)
+            #torch.onnx.export(network.eval(), x, f"{model_path}/onnx/model{idx}_{seed}.onnx", opset_version=18,
+                              #verbose=0)
             quant_ppq_graph = espdl_quantize_torch(network, f"{model_path}/espdl/model{idx}_{seed}.espdl",
                                                 collate_fn=collate_x_only, calib_dataloader=calib_loader, calib_steps=32,
                                                 error_report=False, verbose=0,
