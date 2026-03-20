@@ -38,7 +38,7 @@ for f in /scratch/tmp/n_herr03/NATS_Benchmark/models/espdl/model${1}*.espdl; do
     cd "how_to_run_model"
     idf.py set-target esp32s3
     idf.py build
-    /home/n/n_herr03/.espressif/python_env/idf6.1_py3.10_env/bin/python "/scratch/tmp/n_herr03/esp/esp-idf/tools/idf_size.py" "./build/model_in_flash_rodata.map" --format "json2" > ../output.json
+    /home/n/n_herr03/.espressif/python_env/idf6.1_py3.10_env/bin/python "/scratch/tmp/n_herr03/esp/esp-idf/tools/idf_size.py" "./build/model_in_flash_rodata.map" --format "json" > ../output.json
     cd ".."
     pip install pandas
     python3 convert_to_csv.py "output.json" --output "memory_results.csv" --idx ${idx} --seed ${seed} --dataset "cifar10"
