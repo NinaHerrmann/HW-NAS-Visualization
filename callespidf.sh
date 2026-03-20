@@ -1,6 +1,6 @@
 #!/bin/bash
 ESP_EXPORT="/scratch/tmp/n_herr03/esp/esp-idf/export.sh"
-EXAMPLE="espressif/esp-dl=3.1.3:how_to_run_model"
+EXAMPLE="espressif/esp-dl=3.2.4:how_to_run_model"
 PROJECT_DIR="./how_to_run_model"
 PROGRAM_PATH="./how_to_run_model/main/models/s3"
 
@@ -18,9 +18,9 @@ fi
 "/scratch/tmp/n_herr03/esp/esp-idf/install.sh"
 . $ESP_EXPORT
 
-for f in /scratch/tmp/n_herr03/NATS_Benchmark/models/testmodels/*.espdl; do
-    [ -e "$f" ] || continue   # skip literal pattern if no match
 
+for f in /scratch/tmp/n_herr03/NATS_Benchmark/models/testmodels/model${1}*.espdl; do
+    [ -e "$f" ] || continue   # skip literal pattern if no match
     if [[ $f =~ model([0-9]+)_([0-9]+)\.espdl ]]; then
         idx="${BASH_REMATCH[1]}"
         seed="${BASH_REMATCH[2]}"
