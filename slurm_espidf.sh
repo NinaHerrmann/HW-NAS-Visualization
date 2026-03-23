@@ -54,5 +54,5 @@ PARALLEL_JOBS=$(( PARALLEL_JOBS_THEORETICAL > 1 ? PARALLEL_JOBS_THEORETICAL : 1 
 
 # Run chunks in parallel
 parallel -j "$PARALLEL_JOBS" --lb --joblog "$log_path/parallel_chunk_joblog.txt" \
-	$home/runSingleespidf.sh {1} ::: "$chunk_dir"/chunk_*
+	$home/runSingleespidf.sh ${1} ::: "$chunk_dir"/chunk_*
 # End of script
