@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=128
-#SBATCH --partition=zen3
-#SBATCH --time=48:00:00
-#SBATCH --mem=1400G
+#SBATCH --cpus-per-task=1
+#SBATCH --partition=normal
+#SBATCH --time=24:00:00
+#SBATCH --mem=92G
 
-#SBATCH --job-name=hwnastest
+#SBATCH --job-name=hwnasesp
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=n_herr03@uni-muenster.de
 #SBATCH --output=/scratch/tmp/%u/hwnas/report/%j.out 
@@ -39,7 +39,7 @@ mkdir -p "$log_path"
 result_dir=$wd/result
 echo $result_dir
 
-chunk_dir=$WORK/NATS_Benchmark/joblist
+chunk_dir=$WORK/NATS_Benchmark/chunks
 model_dir=$WORK/NATS_Benchmark/models
 
 

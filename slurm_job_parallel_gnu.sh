@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=128
-#SBATCH --partition=zen3
+#SBATCH --cpus-per-task=1
+#SBATCH --partition=zen4
 #SBATCH --time=48:00:00
 #SBATCH --mem=1400G
 
@@ -54,5 +54,5 @@ PARALLEL_JOBS=$(( PARALLEL_JOBS_THEORETICAL > 1 ? PARALLEL_JOBS_THEORETICAL : 1 
 
 # Run chunks in parallel
 parallel -j "$PARALLEL_JOBS" --lb --joblog "$log_path/parallel_chunk_joblog.txt" \
-	$home/runSingleExperiment.sh "$model_dir" "$result_dir" ::: "$chunk_dir"/chunk_*
+	$home/runSingleExperiment.sh "$model_dir" "$result_dir" {} ::: "$chunk_dir"/chunk_*
 # End of script

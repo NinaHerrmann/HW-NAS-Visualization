@@ -55,7 +55,7 @@ def main():
     df["idx"] = args.idx
     df["dataset"] = args.dataset
 
-    print(df)
+    #print(df)
 
     if os.path.exists(args.output):
         mode = "a"

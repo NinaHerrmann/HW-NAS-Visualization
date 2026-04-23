@@ -20,13 +20,39 @@ chunk="${chunk%.txt}"
 #echo "$chunk_file" | sed -E 's/.*_([0-9]+)\.txt/\1/'
 #chunk="$chunk_file" | sed -E 's/.*_([0-9]+)\.txt/\1/'
 weight_path=/scratch/tmp/n_herr03/NATS_Benchmark/NATS-tss-v1_0-3ffb9-full
+echo ${chunk}
+echo ${chunk_file}
 cd ~/HW-NAS-Visualization/
 # Ensure output directory exists
-while read -r -a nums; do
-  for num in "${nums[@]}"; do
-    echo "calling ${num} ${chunk}"
-    ./callespidf.sh "$num" $chunk
-  done
-done < "$chunk_file"
+IFS=$' \t\n'
 
-rm -rf "/scratch/tmp/n_herr03/hwnas/espproject/how_to_run_model${chunk}"
+# Check if the file exists and is not empty
+if [ -s "$chunk_file" ]; then
+  echo "read..."
+  # Read the file line by line
+  while read -r -a nums; do
+    # Check if the array is not empty
+    if [ ${#nums[@]} -gt 0 ]; then
+      echo "${nums[@]}"
+      for num in "${nums[@]}"; do
+        echo "calling ${num} ${chunk}"
+       ./callespidf.sh "$num" "$chunk"
+      done
+    else 
+      echo "no nums"
+    fi
+  done < "$chunk_file"
+else
+  echo "The file $chunk_file is empty or does not exist."
+fi
+
+#while read -r -a nums; do
+#  echo "${nums[@]}"
+#  for num in "${nums[@]}"; do
+#    echo "calling ${num} ${chunk}"
+#    ./callespidf.sh "$num" $chunk
+#  done
+#done < "$chunk_file"
+
+#rm -rf $TMPDIR/how_to_run_model${chunk}
+#rm -rf "/scratch/tmp/n_herr03/hwnas/espproject/how_to_run_model${chunk}"
