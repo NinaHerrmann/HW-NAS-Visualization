@@ -66,6 +66,5 @@ def main():
 
     df.to_csv(args.output, mode = mode, header = header, index = False)
 
-
 if __name__ == "__main__":
     main()
