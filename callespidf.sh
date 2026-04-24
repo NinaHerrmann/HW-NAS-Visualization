@@ -15,7 +15,7 @@ if [ ! -d "$PROJECT_DIR" ]; then
         exit 1
     fi
     # idf.py create-project-from-example "$EXAMPLE" ${PROJECT_DIR}
-    cp -r how_to_run_model ${PROJECT_DIR}
+    cp -r TinyModels ${PROJECT_DIR}
 fi
 
 "/scratch/tmp/n_herr03/esp/esp-idf/install.sh"
@@ -23,7 +23,7 @@ fi
 
 #git config --global pack.threads "1"
 #git config --global core.preloadIndex false
-for f in /scratch/tmp/n_herr03/NATS_Benchmark/models/espdl/model${1}*.espdl; do
+for f in /scratch/tmp/n_herr03/NATS_Benchmark/models/espdl/model${1}_777.espdl; do
     echo $f
     [ -e "$f" ] || continue   # skip literal pattern if no match
     if [[ $f =~ model([0-9]+)_([0-9]+)\.espdl ]]; then
@@ -42,7 +42,7 @@ for f in /scratch/tmp/n_herr03/NATS_Benchmark/models/espdl/model${1}*.espdl; do
     # shellcheck disable=SC2164
     cd $PROJECT_DIR
     #idf.py clean
-    rm -rf build
+    #rm -rf build
     idf.py set-target esp32s3
     idf.py build
     /home/n/n_herr03/.espressif/python_env/idf5.5_py3.10_env/bin/python "/scratch/tmp/n_herr03/esp/esp-idf/tools/idf_size.py" "./build/model_in_flash_rodata.map" --format "json" > output.json
@@ -50,3 +50,4 @@ for f in /scratch/tmp/n_herr03/NATS_Benchmark/models/espdl/model${1}*.espdl; do
     pip install pandas
     python3 convert_to_csv.py "${PROJECT_DIR}/output.json" --output "memory_results.csv" --idx ${idx} --seed ${seed} --dataset "cifar10"
 done
+

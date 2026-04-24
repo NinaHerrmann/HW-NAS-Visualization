@@ -10,7 +10,7 @@ endif()
 set(cmake_dir ${espdl_dir}/fbs_loader/cmake)
 include(${cmake_dir}/utilities.cmake)
 
-file(GLOB embed_models models/s3/model3043.espdl)
+file(GLOB embed_models models/s3/model.espdl)
 
 file(GLOB embed_imgs "${CMAKE_CURRENT_SOURCE_DIR}/data/*")
 

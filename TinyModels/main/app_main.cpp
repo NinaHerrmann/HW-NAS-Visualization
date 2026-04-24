@@ -8,7 +8,7 @@
 #include "dl_image_jpeg.hpp"
 #include <cmath>
 
-extern const uint8_t model_espdl[] asm("_binary_model3043_espdl_start");
+extern const uint8_t model_espdl[] asm("_binary_model_espdl_start");
 
 
 extern const uint8_t picture_start[] asm("_binary_cifar10_jpg_start");
