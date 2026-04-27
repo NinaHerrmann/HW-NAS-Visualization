@@ -23,7 +23,7 @@ fi
 
 #git config --global pack.threads "1"
 #git config --global core.preloadIndex false
-for f in /scratch/tmp/n_herr03/NATS_Benchmark/models/espdl/model${1}_777.espdl; do
+for f in /scratch/tmp/n_herr03/NATS_Benchmark/models/espdl/model${1}_${3}.espdl; do
     echo $f
     [ -e "$f" ] || continue   # skip literal pattern if no match
     if [[ $f =~ model([0-9]+)_([0-9]+)\.espdl ]]; then

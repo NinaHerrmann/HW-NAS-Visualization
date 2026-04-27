@@ -106,7 +106,7 @@ if not os.path.exists(f"{model_path}/onnx"):
 if not os.path.exists(f"{model_path}/espdl"):
     os.makedirs(f"{model_path}/espdl")
 
-with open("input.txt", "r", encoding="utf-8") as f:
+with open(file, "r", encoding="utf-8") as f:
     for line_no, line in enumerate(f, start=1):
         line = line.strip()
         if not line or line.startswith("#"):
@@ -127,8 +127,13 @@ with open("input.txt", "r", encoding="utf-8") as f:
             netconfig = hw_api.get_net_config(idx, dataset)
             print(f"read {weightpath}/{idx:06d}.pickle.pbz2")
             weights_path = f'{weightpath}/{idx:06d}.pickle.pbz2'  # or .pkl
-            with bz2.BZ2File(weights_path, "rb") as f:
-                data = pickle.load(f)
+            try:
+                with bz2.BZ2File(weights_path, "rb") as f:
+                    data = pickle.load(f)
+            except FileNotFoundError:
+                with open("/home/n/n_herr03/HW-NAS-Visualization/doesnotwork.txt", "a") as f:
+                    f.write(f"{idx},{seed}\n")
+                continue
             validkey = []
             for key in data.keys():
                 if key in data: validkey.append(key)

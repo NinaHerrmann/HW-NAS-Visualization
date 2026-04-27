@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=32
 #SBATCH --partition=zen4
 #SBATCH --time=48:00:00
 #SBATCH --mem=1400G
 
-#SBATCH --job-name=hwnastest
+#SBATCH --job-name=hwnasmissing
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=n_herr03@uni-muenster.de
 #SBATCH --output=/scratch/tmp/%u/hwnas/report/%j.out 
@@ -22,7 +22,7 @@ ml Python/3.10.8
 ml parallel/20230722
 
 
-NUMBER_OF_CPUS_PER_JOB=1
+NUMBER_OF_CPUS_PER_JOB=32
 export OPENBLAS_NUM_THREADS=$NUMBER_OF_CPUS_PER_JOB
 export MKL_NUM_THREADS=$NUMBER_OF_CPUS_PER_JOB
 export OMP_NUM_THREADS=$NUMBER_OF_CPUS_PER_JOB
@@ -45,14 +45,5 @@ model_dir=$WORK/NATS_Benchmark/models
 
 # Export variables for job environment (parallel will inherit env, but --env is explicit below)
 export lgbm ms data_dir model_dir log_path result_dir
-PARALLEL_JOBS_THEORETICAL=$(((SLURM_CPUS_ON_NODE-1)/NUMBER_OF_CPUS_PER_JOB))
-# make sure value is > 1
-PARALLEL_JOBS=$(( PARALLEL_JOBS_THEORETICAL > 1 ? PARALLEL_JOBS_THEORETICAL : 1 ))
 
-# Option 1 (preferred): Chunked execution with (pseudo-)balanced chunks
-# Adapt chunk size (max_chunk_trees) and max_rows_per_chunk to your needs or introduce other balancing criteria
-
-# Run chunks in parallel
-parallel -j "$PARALLEL_JOBS" --lb --joblog "$log_path/parallel_chunk_joblog.txt" \
-	$home/runSingleExperiment.sh "$model_dir" "$result_dir" {} ::: "$chunk_dir"/chunk_*
-# End of script
+$home/runSingleExperiment.sh "$model_dir" "$result_dir" "/scratch/tmp/n_herr03/NATS_Benchmark/missingjob/missing_cifar10.txt"

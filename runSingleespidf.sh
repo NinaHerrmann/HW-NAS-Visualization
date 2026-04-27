@@ -28,19 +28,27 @@ IFS=$' \t\n'
 
 # Check if the file exists and is not empty
 if [ -s "$chunk_file" ]; then
-  echo "read..."
+  #echo "read..."
   # Read the file line by line
-  while read -r -a nums; do
+  #while read -r -a nums; do
     # Check if the array is not empty
-    if [ ${#nums[@]} -gt 0 ]; then
-      echo "${nums[@]}"
-      for num in "${nums[@]}"; do
-        echo "calling ${num} ${chunk}"
-       ./callespidf.sh "$num" "$chunk"
-      done
-    else 
-      echo "no nums"
-    fi
+  #  if [ ${#nums[@]} -gt 0 ]; then
+  #    echo "${nums[@]}"
+  #    for num in "${nums[@]}"; do
+  #      echo "calling ${num} ${chunk}"
+  #     ./callespidf.sh "$num" "$chunk"
+  #    done
+  #  else 
+  #    echo "no nums"
+  #  fi
+  #done < "$chunk_file"
+  while read -r idx seed; do
+    # skip empty lines / comments (optional)
+    [[ -z "${idx:-}" ]] && continue
+    [[ "${idx:0:1}" == "#" ]] && continue
+
+    echo "Running idx=$idx chunk=$chunk seed=$seed"
+    ./callespidf.sh "$idx" "$chunk" "$seed"
   done < "$chunk_file"
 else
   echo "The file $chunk_file is empty or does not exist."

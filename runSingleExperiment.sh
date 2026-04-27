@@ -19,8 +19,5 @@ chunk_file="${3}"
 weight_path=/scratch/tmp/n_herr03/NATS_Benchmark/NATS-tss-v1_0-3ffb9-full
 cd ~/HW-NAS-Visualization/
 # Ensure output directory exists
-while IFS=' ' read -r line; do
-	python MemoryGeneratorppq.py -n $line --modelpath "${model_dir}" --resultpath "${result_dir}" --weightpath "${weight_path}"
-done < "$chunk_file"
-
+python MissingJobsppq.py -file "${chunk_file}" --modelpath "${model_dir}" --resultpath "${result_dir}" --weightpath "${weight_path}"
 
