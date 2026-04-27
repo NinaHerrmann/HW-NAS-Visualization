@@ -50,7 +50,7 @@ def load_state_dict_for_seed(idx: int, seed: int, dataset: str, weightpath: str)
         available = [k for k in all_results.keys() if isinstance(k, tuple) and len(k) == 2 and k[0] == dataset]
         raise KeyError(f"{lookup_key} not in all_results. Available: {available[:10]} ...")
 
-    return all_results[lookup_key]["net_state_dict"]
+    return all_results[lookup_key]["net_state_dict"], key
 
 def export_torch_model(idx: int, seed: int, dataset: str):
     """
@@ -61,7 +61,7 @@ def export_torch_model(idx: int, seed: int, dataset: str):
     netconfig = hw_api.get_net_config(idx, dataset)
 
     # Rebuild and load weights for this seed
-    state_dict = load_state_dict_for_seed(idx, seed, dataset, WEIGHTPATH)
+    state_dict, key = load_state_dict_for_seed(idx, seed, dataset, WEIGHTPATH)
     network = get_cell_based_tiny_net(netconfig)
     network.load_state_dict(state_dict)
     network.eval()
@@ -70,7 +70,7 @@ def export_torch_model(idx: int, seed: int, dataset: str):
     scripted = torch.jit.script(network)
     scripted.save(out_path)
 
-    return out_path
+    return out_path, key
 
 def scan_folder(models_dir: Path):
     """
@@ -96,7 +96,7 @@ def main():
     found = scan_folder(MODELS_DIR)
 
     fieldnames = [
-        "idx", "seed",
+        "idx", "seed", "key"
         "espdl_path", "espdl_size_bytes",
         "torch_path", "torch_size_bytes",
     ]
@@ -112,7 +112,7 @@ def main():
 
             # Export torch model for this (idx, seed)
             try:
-                torch_path = export_torch_model(idx, seed, DATASET)
+                torch_path, key = export_torch_model(idx, seed, DATASET)
                 torch_size = filesize_bytes(torch_path)
             except Exception as e:
                 # If something fails, still write a row with empty torch info
@@ -123,6 +123,7 @@ def main():
             writer.writerow({
                 "idx": idx,
                 "seed": seed,
+                "key": key,
                 "espdl_path": str(espdl_path) if espdl_path else "",
                 "espdl_size_bytes": espdl_size,
                 "torch_path": str(torch_path) if torch_path else "",
