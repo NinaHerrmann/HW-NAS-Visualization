@@ -103,7 +103,8 @@ def main():
         "espdl_size_bytes",
         "torch_size_bytes",
     ]
-
+    rows_between_sync = 200
+    rows_written = 0
     with open(CSV_PATH, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
@@ -115,11 +116,11 @@ def main():
 
             # Export torch model for this (idx, seed)
             try:
-                torch_path, key = export_torch_model(idx, seed, DATASET)
+                torch_path = OUT_DIR / f"model{idx}_{seed}.pt"
+                if not torch_path.exists():
+                    torch_path, key = export_torch_model(idx, seed, DATASET)
                 torch_size = filesize_bytes(torch_path)
             except Exception as e:
-                # If something fails, still write a row with empty torch info
-                torch_path = None
                 torch_size = 0
                 key = 0
                 print(f"[WARN] Failed idx={idx} seed={seed}: {e}")
@@ -131,6 +132,13 @@ def main():
                 "espdl_size_bytes": espdl_size,
                 "torch_size_bytes": torch_size,
             })
+            rows_written += 1
+            if rows_written % rows_between_sync == 0:
+                f.flush()
+                try:
+                    os.fsync(f.fileno())
+                except OSError as e:
+                    print(f"[WARN] fsync failed: {e}")
 
     print(f"Wrote {CSV_PATH} with {len(found)} rows.")
 
