@@ -4,6 +4,9 @@ import csv
 import bz2
 import pickle
 from pathlib import Path
+
+import pandas as pd
+
 from hw_nas_bench_api import HWNASBenchAPI as HWAPI
 import torch
 from xautodl.models import get_cell_based_tiny_net  # this module is in AutoDL-Projects/lib/models
@@ -97,7 +100,8 @@ def scan_folder(models_dir: Path):
 
 def main():
     found = scan_folder(MODELS_DIR)
-
+    df_done = pd.read_csv(CSV_PATH)
+    done_set = set(zip(df_done['idx'], df_done['seed']))
     fieldnames = [
         "idx", "seed", "key",
         "espdl_size_bytes",
@@ -106,10 +110,14 @@ def main():
     rows_between_sync = 200
     rows_written = 0
     with open(CSV_PATH, "w", newline="") as f:
+
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
 
         for (idx, seed), paths in sorted(found.items()):
+            key = (idx, seed)
+            if key in done_set:
+                continue
             espdl_path = paths.get("espdl")
 
             espdl_size = filesize_bytes(espdl_path) if espdl_path else 0
