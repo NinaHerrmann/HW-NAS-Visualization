@@ -67,8 +67,11 @@ def export_torch_model(idx: int, seed: int, dataset: str):
     network.eval()
 
     out_path = OUT_DIR / f"model{idx}_{seed}.pt"
-    scripted = torch.jit.script(network)
-    scripted.save(out_path)
+    #scripted = torch.jit.script(network)
+    example_input = torch.randn(1, 3, 32, 32)  # adjust to your expected input
+    traced = torch.jit.trace(network, example_input)
+    traced.save(out_path)
+    #scripted.save(out_path)
 
     return out_path, key
 
@@ -96,9 +99,9 @@ def main():
     found = scan_folder(MODELS_DIR)
 
     fieldnames = [
-        "idx", "seed", "key"
-        "espdl_path", "espdl_size_bytes",
-        "torch_path", "torch_size_bytes",
+        "idx", "seed", "key",
+        "espdl_size_bytes",
+        "torch_size_bytes",
     ]
 
     with open(CSV_PATH, "w", newline="") as f:
@@ -118,15 +121,14 @@ def main():
                 # If something fails, still write a row with empty torch info
                 torch_path = None
                 torch_size = 0
+                key = 0
                 print(f"[WARN] Failed idx={idx} seed={seed}: {e}")
 
             writer.writerow({
                 "idx": idx,
                 "seed": seed,
                 "key": key,
-                "espdl_path": str(espdl_path) if espdl_path else "",
                 "espdl_size_bytes": espdl_size,
-                "torch_path": str(torch_path) if torch_path else "",
                 "torch_size_bytes": torch_size,
             })
 
