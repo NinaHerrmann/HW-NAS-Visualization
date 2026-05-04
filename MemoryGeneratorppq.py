@@ -120,6 +120,8 @@ for idx in idxs:
         netconfig = hw_api.get_net_config(idx, dataset)
         print(f"read {weightpath}/{idx:06d}.pickle.pbz2")
         weights_path = f'{weightpath}/{idx:06d}.pickle.pbz2'  # or .pkl
+        if not os.path.exists(weights_path):
+            continue
         with bz2.BZ2File(weights_path, "rb") as f:
             data = pickle.load(f)
         validkey = []

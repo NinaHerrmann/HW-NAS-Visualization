@@ -39,10 +39,10 @@ def parse_args():
     p = build_parser()
     args = p.parse_args()
 
-    nums = args.nums if args.nums is not None else []
-    if args.nums is not None:
-        nums = args.nums
-    args.nums_parsed = nums
+    #nums = args.nums if args.nums is not None else []
+    #if args.nums is not None:
+    #    nums = args.nums
+    #args.nums_parsed = nums
     return args
 
 def evaluate_top1(executor, loader):
@@ -137,6 +137,9 @@ with open("nativemodels.txt", "r") as f:
             netconfig = hw_api.get_net_config(idx, dataset)
             print(f"read {weightpath}/{idx:06d}.pickle.pbz2")
             weights_path = f'{weightpath}/{idx:06d}.pickle.pbz2'  # or .pkl
+            if not os.path.exists(weights_path):
+                print("does not exists")
+                continue
             with bz2.BZ2File(weights_path, "rb") as f:
                 data = pickle.load(f)
             validkey = []
