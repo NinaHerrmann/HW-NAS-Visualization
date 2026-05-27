@@ -23,5 +23,9 @@ missing = missing[missing["_merge"].eq("left_only")][["idx"]]
 
 # write "idx seed" per line
 missing.to_csv(out_path, sep=" ", header=False, index=False)
-
+missing_idx = missing['idx']          # Series of ids to remove
+df = pd.read_csv('../old_memory_results.csv')
+df_clean = df[~df['idx'].isin(missing_idx)]
+df_clean.to_csv('../memory_results.csv', index=False)
 print(f"Wrote {len(missing)} combinations to {out_path}")
+print(f"Wrote {(df_clean['idx'].nunique())} instead of {len(df)} diff = {len(df)-len(df_clean)}")
