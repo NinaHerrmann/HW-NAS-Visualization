@@ -97,7 +97,6 @@ std  = (0.2470, 0.2435, 0.2616)
 transform = transforms.Compose(
     [transforms.ToTensor(),
      transforms.Normalize(mean, std)])
-#print(f"read data {resultpath}/data")
 testset = torchvision.datasets.CIFAR10(root=f'{resultpath}/data', train=False, download=True, transform=transform)
 
 batchsize = 1
