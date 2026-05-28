@@ -21,16 +21,17 @@ fi
 "/scratch/tmp/n_herr03/esp/esp-idf/install.sh"
 . $ESP_EXPORT
 
-#git config --global pack.threads "1"
-#git config --global core.preloadIndex false
-for f in /scratch/tmp/n_herr03/NATS_Benchmark/models/espdl/model${1}_${3}.espdl; do
-    echo $f
-    [ -e "$f" ] || continue   # skip literal pattern if no match
-    if [[ $f =~ model([0-9]+)_([0-9]+)\.espdl ]]; then
-        idx="${BASH_REMATCH[1]}"
-        seed="${BASH_REMATCH[2]}"
-        echo "First number: $idx"
-        echo "Second number: $seed"
+for f in /scratch/tmp/n_herr03/NATS_Benchmark/models/espdl/model${1}_*.espdl; do
+    [ -e "$f" ] || continue
+    echo "File: $f"
+    # capture the two numeric parts (model index and the trailing number)
+    if [[ $f =~ model([0-9]+)_([0-9]+)\.espdl$ ]]; then
+        idx="${BASH_REMATCH[1]}"   # same as $1
+        seed="${BASH_REMATCH[2]}"  # the number after the underscore
+        echo "First number (idx): $idx"
+        echo "Second number (seed): $seed"
+    else
+        echo "No numeric suffix found in $f"
     fi
     echo "Processing: /scratch/tmp/n_herr03/NATS_Benchmark/models/espdl/model${idx}_${seed}.espdl"
 

@@ -39,10 +39,6 @@ def parse_args():
     p = build_parser()
     args = p.parse_args()
 
-    #nums = args.nums if args.nums is not None else []
-    #if args.nums is not None:
-    #    nums = args.nums
-    #args.nums_parsed = nums
     return args
 
 def evaluate_top1(executor, loader):
@@ -50,36 +46,17 @@ def evaluate_top1(executor, loader):
     total = 0
 
     for images, labels in loader:
-        # run quantized graph
-        out = executor(images)   # sometimes executor(*[images]) is needed
-
-        # TorchExecutor may return list/tuple
+        out = executor(images)
         if isinstance(out, (list, tuple)):
             logits = out[1]
         else:
             logits = out
 
         preds = torch.argmax(logits, dim=1)
-
         correct += (preds == labels).sum().item()
         total += labels.numel()
     #print(f"labeled {total} correct: {correct} acc {100 * correct / total}")
     return correct / total
-
-def convert_tflite_to_header(tflite_content, output_header_path, float16=False):
-    hex_lines = [', '.join([f'0x{byte:02x}' for byte in tflite_content[i:i + 12]]) for i in
-                 range(0, len(tflite_content), 12)]
-
-    hex_array = ',\n  '.join(hex_lines)
-
-    with open(output_header_path, 'w') as header_file:
-        if float16:
-            header_file.write('alignas(16) const unsigned char model[] = {\n  ')
-        else:
-            header_file.write('const unsigned char model[] = {\n  ')
-        header_file.write(f'{hex_array}\n')
-        header_file.write('};\n\n')
-
 
 hw_api = HWAPI("HW-NAS-Bench-v1_0.pickle", search_space="nasbench201")
 all_data = []
@@ -116,19 +93,13 @@ with open("nativemodels.txt", "r") as f:
             continue                 # skip comment lines (optional)
 
         parts = line.split()
-        if len(parts) < 2:
+        if len(parts) < 1:
             print(f"Skipping malformed line {lineno}: {line!r}")
             continue
 
-        # parse types as needed; use int() if they're integers
         try:
             idx = int(parts[0])
-            seed = int(parts[1])
-            key = int(parts[2])
-            espdlsize = int(parts[3])
         except ValueError:
-            # if they are strings, comment out conversion and assign directly:
-            # idx, seed = parts[0], parts[1]
             print(f"Skipping line with non-integer values {lineno}: {line!r}")
             continue
         for dataset in ["cifar10"]:
@@ -154,12 +125,10 @@ with open("nativemodels.txt", "r") as f:
             for innerkey in data[key]["all_results"]:
                 if isinstance(innerkey[0], str) and (innerkey[0] == 'cifar10'):
                     _, newseed = innerkey
-                    if newseed != seed:
-                        continue
                 else:
                     continue
 
-                ourdict = data[key]["all_results"][('cifar10', seed)]["net_state_dict"]
+                ourdict = data[key]["all_results"][('cifar10', newseed)]["net_state_dict"]
                 network = get_cell_based_tiny_net(netconfig)
                 network.load_state_dict(ourdict)
                 x = torch.rand([1, 3, 32, 32], dtype=torch.float32)
