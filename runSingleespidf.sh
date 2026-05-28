@@ -42,13 +42,13 @@ if [ -s "$chunk_file" ]; then
   #    echo "no nums"
   #  fi
   #done < "$chunk_file"
-  while read -r idx seed; do
+  while read -r idx; do
     # skip empty lines / comments (optional)
     [[ -z "${idx:-}" ]] && continue
     [[ "${idx:0:1}" == "#" ]] && continue
 
-    echo "Running idx=$idx chunk=$chunk seed=$seed"
-    ./callespidf.sh "$idx" "$chunk" "$seed"
+    echo "Running idx=$idx chunk=$chunk
+    ./callespidf.sh "$idx" "$chunk"
   done < "$chunk_file"
 else
   echo "The file $chunk_file is empty or does not exist."

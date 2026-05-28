@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --ntasks=1
+#SBATCH --ntasks=64
 #SBATCH --cpus-per-task=1
-#SBATCH --partition=normal
+#SBATCH --partition=bigsmp
 #SBATCH --time=24:00:00
 #SBATCH --mem=92G
 
@@ -39,7 +39,7 @@ mkdir -p "$log_path"
 result_dir=$wd/result
 echo $result_dir
 
-chunk_dir=$WORK/NATS_Benchmark/chunks
+chunk_dir=/home/n/n_herr03/HW-NAS-Visualization/chunks
 model_dir=$WORK/NATS_Benchmark/models
 
 
