@@ -11,9 +11,18 @@ from hw_nas_bench_api import HWNASBenchAPI as HWAPI
 import torch
 from xautodl.models import get_cell_based_tiny_net  # this module is in AutoDL-Projects/lib/models
 
-MODELS_DIR = Path("/scratch/tmp/n_herr03/NATS_Benchmark/models/espdl")
-OUT_DIR = Path("/scratch/tmp/n_herr03/hwnas/result")
-OUT_DIR.mkdir(parents=True, exist_ok=True)
+#MODELS_DIR = Path("/scratch/tmp/n_herr03/NATS_Benchmark/models/espdl")
+#OUT_DIR = Path("/scratch/tmp/n_herr03/hwnas/result")
+# OUT_DIR.mkdir(parents=True, exist_ok=True)
+df = pd.read_csv("model_sizes.csv")
+df['torch_size_bytes'] = pd.to_numeric(df['torch_size_bytes'], errors='coerce')
+
+with open("nativemodels.txt", "w") as f:
+    for _, row in df[df['torch_size_bytes'] == 0].iterrows():
+        f.write(f"{row['idx']} {row['seed']} {row['key']} {row['espdl_size_bytes']}\n")
+
+exit()
+
 hw_api = HWAPI("HW-NAS-Bench-v1_0.pickle", search_space="nasbench201")
 
 CSV_PATH = Path("model_sizes.csv")

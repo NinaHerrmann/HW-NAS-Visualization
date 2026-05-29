@@ -33,7 +33,16 @@ if not os.path.exists("models/onnx"):
     os.makedirs("models/onnx")
 if not os.path.exists("models/tf"):
     os.makedirs("models/tf")
-for idx in range(5):
+
+indxdf = pd.read_csv("./restjobs/rmdup/noweight.csv", header=None)
+nums = indxdf.row[0].tolist()
+if nums is None:
+    exit("nums == None")
+
+print(nums)
+exit()
+
+for idx in idxs:
     for dataset in ["cifar10"]:
         HW_metrics = hw_api.query_by_index(idx, dataset)
         netconfig = hw_api.get_net_config(idx, dataset)

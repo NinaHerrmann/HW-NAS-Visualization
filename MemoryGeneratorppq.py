@@ -9,6 +9,7 @@ from esp_ppq import TorchExecutor, QuantizationSettingFactory
 from esp_ppq.api import espdl_quantize_onnx, espdl_quantize_torch
 from torch.utils.data import DataLoader
 import argparse
+import pandas as pd
 from hw_nas_bench_api import HWNASBenchAPI as HWAPI
 from xautodl.models import get_cell_based_tiny_net  # this module is in AutoDL-Projects/lib/models
 
@@ -21,11 +22,9 @@ quant_setting.equalization = True
 # quant_setting.equalization_setting.opt_level = 2
 def build_parser():
     p = argparse.ArgumentParser(description="Example: accept a list of integers")
-    p.add_argument('-n', '--nums',
-                   nargs='+',            # one or more; use '*' to allow zero
-                   type=int,
-                   metavar='N',
-                   help='list of integers (e.g. --nums 1 2 3)')
+    p.add_argument('--file',
+                   type=str,
+                   help='file with indexes')
     p.add_argument('--modelpath',
                    type=str,
                    help='file to store models')
@@ -41,9 +40,11 @@ def parse_args():
     p = build_parser()
     args = p.parse_args()
 
-    nums = args.nums if args.nums is not None else []
-    if args.nums is not None:
-        nums = args.nums
+    indxdf = pd.read_csv(args.file, header=None)
+    nums = indxdf[0].tolist()
+    if nums is None:
+        exit("nums == None")
+
     args.nums_parsed = nums
     return args
 
@@ -139,7 +140,6 @@ for idx in idxs:
                 continue
 
             ourdict = data[key]["all_results"][('cifar10', seed)]["net_state_dict"]
-            print(ourdict)
             network = get_cell_based_tiny_net(netconfig)
             network.load_state_dict(ourdict)
             x = torch.rand([1, 3, 32, 32], dtype=torch.float32)

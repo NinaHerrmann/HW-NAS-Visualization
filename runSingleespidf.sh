@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# Assign input parameters to named variables for clarity
-
 chunk_file="${1}"
 chunk="${chunk_file##*_}"     # remove everything up to last _
 chunk="${chunk%.csv}" 
@@ -14,22 +12,18 @@ cd ~/HW-NAS-Visualization/
 # Ensure output directory exists
 IFS=$' \t\n'
 
+
+chunk_file="${1}"
+model_dir="${1}"
+result_dir="${2}"
+weight_path=/scratch/tmp/n_herr03/NATS_Benchmark/NATS-tss-v1_0-3ffb9-full
+cd ~/HW-NAS-Visualization/
+# Ensure output directory exists
+python MemoryGeneratorppq.py --file "${chunk_file}" --modelpath "${model_dir}" --resultpath "${result_dir}" --weightpath "${weight_path}"
+
+
 # Check if the file exists and is not empty
 if [ -s "$chunk_file" ]; then
-  #echo "read..."
-  # Read the file line by line
-  #while read -r -a nums; do
-    # Check if the array is not empty
-  #  if [ ${#nums[@]} -gt 0 ]; then
-  #    echo "${nums[@]}"
-  #    for num in "${nums[@]}"; do
-  #      echo "calling ${num} ${chunk}"
-  #     ./callespidf.sh "$num" "$chunk"
-  #    done
-  #  else 
-  #    echo "no nums"
-  #  fi
-  #done < "$chunk_file"
   while read -r idx; do
     # skip empty lines / comments (optional)
     [[ -z "${idx:-}" ]] && continue
@@ -41,14 +35,3 @@ if [ -s "$chunk_file" ]; then
 else
   echo "The file $chunk_file is empty or does not exist."
 fi
-
-#while read -r -a nums; do
-#  echo "${nums[@]}"
-#  for num in "${nums[@]}"; do
-#    echo "calling ${num} ${chunk}"
-#    ./callespidf.sh "$num" $chunk
-#  done
-#done < "$chunk_file"
-
-#rm -rf $TMPDIR/how_to_run_model${chunk}
-#rm -rf "/scratch/tmp/n_herr03/hwnas/espproject/how_to_run_model${chunk}"
