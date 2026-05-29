@@ -4,7 +4,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --partition=bigsmp
 #SBATCH --time=24:00:00
-#SBATCH --mem=92G
+#SBATCH --mem=150G
 
 #SBATCH --job-name=hwnasesp
 #SBATCH --mail-type=ALL
@@ -47,7 +47,7 @@ model_dir=$WORK/NATS_Benchmark/models
 export lgbm ms data_dir model_dir log_path result_dir
 PARALLEL_JOBS_THEORETICAL=$(((SLURM_CPUS_ON_NODE-1)/NUMBER_OF_CPUS_PER_JOB))
 # make sure value is > 1
-PARALLEL_JOBS=$(( PARALLEL_JOBS_THEORETICAL > 1 ? PARALLEL_JOBS_THEORETICAL : 1 ))
+PARALLEL_JOBS=64
 
 # Option 1 (preferred): Chunked execution with (pseudo-)balanced chunks
 # Adapt chunk size (max_chunk_trees) and max_rows_per_chunk to your needs or introduce other balancing criteria
