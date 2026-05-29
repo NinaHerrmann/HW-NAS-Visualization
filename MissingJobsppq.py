@@ -82,19 +82,21 @@ if not os.path.exists(f"{model_path}/onnx"):
     os.makedirs(f"{model_path}/onnx")
 if not os.path.exists(f"{model_path}/espdl"):
     os.makedirs(f"{model_path}/espdl")
-
+counter = 0
 with open(file, "r", encoding="utf-8") as f:
     for line_no, line in enumerate(f, start=1):
         line = line.strip()
         if not line or line.startswith('#'):
             continue
         idx = int(line.split()[0])
-
+        print(counter)
+        counter = counter+1
         for dataset in ["cifar10"]:
             init_start = time.process_time()
             HW_metrics = hw_api.query_by_index(idx, dataset)
             netconfig = hw_api.get_net_config(idx, dataset)
-            print(f"read {weightpath}/{idx:06d}.pickle.pbz2")
+            #print(f"read {weightpath}/{idx:06d}.pickle.pbz2")
+            
             weights_path = f'{weightpath}/{idx:06d}.pickle.pbz2'  # or .pkl
             try:
                 with bz2.BZ2File(weights_path, "rb") as f:
