@@ -14,12 +14,12 @@ IFS=$' \t\n'
 
 
 chunk_file="${1}"
-model_dir="${1}"
-result_dir="${2}"
+model_dir="${2}"
+result_dir="${3}"
 weight_path=/scratch/tmp/n_herr03/NATS_Benchmark/NATS-tss-v1_0-3ffb9-full
-cd ~/HW-NAS-Visualization/
+cd ~/HW-NAS-Visualization/ || exit
 # Ensure output directory exists
-python MemoryGeneratorppq.py --file "${chunk_file}" --modelpath "${model_dir}" --resultpath "${result_dir}" --weightpath "${weight_path}"
+python AccuracyAndModelGenerator.py --file "${chunk_file}" --modelpath "${model_dir}" --resultpath "${result_dir}" --weightpath "${weight_path}"
 
 
 # Check if the file exists and is not empty

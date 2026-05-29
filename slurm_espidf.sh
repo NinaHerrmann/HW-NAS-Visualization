@@ -30,8 +30,8 @@ export OMP_NUM_THREADS=$NUMBER_OF_CPUS_PER_JOB
 home="$HOME"/HW-NAS-Visualization
 wd="$WORK"/hwnas
 
-cd $home
-pip install -r ./requirements_memorygenerator.txt
+cd $home || exit
+pip install --quiet -r ./requirements_memorygenerator.txt
 log_path="$wd"/report/sublogs/hwnas_"$SLURM_JOB_ID"
 echo $log_path
 mkdir -p "$log_path"
@@ -44,15 +44,11 @@ model_dir=$WORK/NATS_Benchmark/models
 
 
 # Export variables for job environment (parallel will inherit env, but --env is explicit below)
-export lgbm ms data_dir model_dir log_path result_dir
-PARALLEL_JOBS_THEORETICAL=$(((SLURM_CPUS_ON_NODE-1)/NUMBER_OF_CPUS_PER_JOB))
-# make sure value is > 1
+export model_dir log_path result_dir
 PARALLEL_JOBS=64
 
 # Option 1 (preferred): Chunked execution with (pseudo-)balanced chunks
 # Adapt chunk size (max_chunk_trees) and max_rows_per_chunk to your needs or introduce other balancing criteria
-
-# Run chunks in parallel
 parallel -j "$PARALLEL_JOBS" --lb --joblog "$log_path/parallel_chunk_joblog.txt" \
-	$home/runSingleespidf.sh {} ::: "$chunk_dir"/chunk_*
+	$home/runSingleespidf.sh {} $model_dir $result_dir ::: "$chunk_dir"/chunk_*
 # End of script
