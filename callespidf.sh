@@ -15,7 +15,7 @@ if [ ! -d "$PROJECT_DIR" ]; then
         exit 1
     fi
     # idf.py create-project-from-example "$EXAMPLE" ${PROJECT_DIR}
-    cp -r TinyModels ${PROJECT_DIR}
+    cp -r /scratch/tmp/n_herr03/hwnas/TinyModels ${PROJECT_DIR}
 fi
 
 "/scratch/tmp/n_herr03/esp/esp-idf/install.sh"
