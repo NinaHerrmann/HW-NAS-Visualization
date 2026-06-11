@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --ntasks=64
+#SBATCH --ntasks=128
 #SBATCH --cpus-per-task=1
-#SBATCH --partition=bigsmp
-#SBATCH --time=24:00:00
+#SBATCH --partition=zen3
+#SBATCH --time=48:00:00
 #SBATCH --mem=150G
 
-#SBATCH --job-name=hwnasesp
+#SBATCH --job-name=hwnasimgnettrial
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=n_herr03@uni-muenster.de
 #SBATCH --output=/scratch/tmp/%u/hwnas/report/%j.out 
@@ -39,7 +39,7 @@ mkdir -p "$log_path"
 result_dir=$wd/result
 echo $result_dir
 
-chunk_dir=/home/n/n_herr03/HW-NAS-Visualization/chunks
+chunk_dir=/scratch/tmp/n_herr03/NATS_Benchmark/chunksImageNet
 model_dir=$WORK/NATS_Benchmark/models
 
 

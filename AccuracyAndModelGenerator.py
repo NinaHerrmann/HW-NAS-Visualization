@@ -114,7 +114,7 @@ if not os.path.exists(f"{model_path}/espdl"):
     os.makedirs(f"{model_path}/espdl")
 
 for idx in idxs:
-    for dataset in ["cifar10"]:
+    for dataset in ["ImageNet16-120"]:
         init_start = time.process_time()
         HW_metrics = hw_api.query_by_index(idx, dataset)
         netconfig = hw_api.get_net_config(idx, dataset)
@@ -134,12 +134,12 @@ for idx in idxs:
 
         key = max(validkey)
         for innerkey in data[key]["all_results"]:
-            if isinstance(innerkey[0], str) and (innerkey[0] == 'cifar10'):
+            if isinstance(innerkey[0], str) and (innerkey[0] == dataset):
                 _, seed = innerkey
             else:
                 continue
 
-            ourdict = data[key]["all_results"][('cifar10', seed)]["net_state_dict"]
+            ourdict = data[key]["all_results"][(dataset, seed)]["net_state_dict"]
             network = get_cell_based_tiny_net(netconfig)
             network.load_state_dict(ourdict)
             x = torch.rand([1, 3, 32, 32], dtype=torch.float32)
@@ -158,7 +158,7 @@ for idx in idxs:
             if not os.path.exists(f'{resultpath}/result.csv'):
                 with open('result.csv', 'a', encoding='utf-8') as f:
                     f.write("idx,seed,dataset,recorded_test_acc,quant_test_acc\n")
-            line = f"{idx},{seed},cifar10,{acc * 100:.2f},{accqu * 100:.2f}\n"
+            line = f"{idx},{seed},{dataset},{acc * 100:.2f},{accqu * 100:.2f}\n"
             print(line)
             with open(f'{resultpath}/result.csv', 'a', encoding='utf-8') as f:
                 f.write(line)

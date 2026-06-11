@@ -42,10 +42,10 @@ for f in /scratch/tmp/n_herr03/NATS_Benchmark/models/espdl/model${1}_*.espdl; do
     cp -f "$espmodelpath" "$dest"
     # shellcheck disable=SC2164
     cd $PROJECT_DIR
-    #idf.py clean
+    idf.py clean
     #rm -rf build
-    idf.py set-target esp32s3
-    idf.py build
+    idf.py set-target esp32p4
+    idf.py build || { echo "$idx $seed \n " > failed.txt; exit 1; }
     /home/n/n_herr03/.espressif/python_env/idf5.5_py3.10_env/bin/python "/scratch/tmp/n_herr03/esp/esp-idf/tools/idf_size.py" "./build/model_in_flash_rodata.map" --format "json" > output.json
     cd ~/HW-NAS-Visualization
     pip install pandas
