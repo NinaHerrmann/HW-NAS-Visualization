@@ -8,18 +8,16 @@ chunk="${chunk%.csv}"
 weight_path=/scratch/tmp/n_herr03/NATS_Benchmark/NATS-tss-v1_0-3ffb9-full
 echo ${chunk}
 echo ${chunk_file}
-cd ~/HW-NAS-Visualization/
+cd "~/MemoryGenerator/"
 # Ensure output directory exists
-IFS=$' \t\n'
-
 
 chunk_file="${1}"
 model_dir="${2}"
 result_dir="${3}"
-weight_path=/scratch/tmp/n_herr03/NATS_Benchmark/NATS-tss-v1_0-3ffb9-full
-cd ~/HW-NAS-Visualization/ || exit
+weight_path=/mnt/dss_project/nherrmann/memorygenerator/NAS-Bench-201-v1_1-096897.pth
+cd ~/MemoryGenerator/ || exit
 # Ensure output directory exists
-python AccuracyAndModelGenerator.py --file "${chunk_file}" --modelpath "${model_dir}" --resultpath "${result_dir}" --weightpath "${weight_path}"
+python3 AccuracyAndModelGenerator.py --file "${chunk_file}" --modelpath "${model_dir}" --resultpath "${result_dir}" --weightpath "${weight_path}"
 
 
 # Check if the file exists and is not empty
@@ -30,7 +28,7 @@ if [ -s "$chunk_file" ]; then
     [[ "${idx:0:1}" == "#" ]] && continue
 
     echo "Running idx=$idx chunk=$chunk"
-    ./callespidf.sh "$idx" "$chunk"
+    ./callespidf.sh "$idx" "$chunk" "$model_dir"
   done < "$chunk_file"
 else
   echo "The file $chunk_file is empty or does not exist."
