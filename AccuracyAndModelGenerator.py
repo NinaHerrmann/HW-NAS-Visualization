@@ -174,6 +174,7 @@ weightpath = args.weightpath
 datapath = args.datapath
 string_dataset = 'ImageNet16-120'
 batchsize = 1
+EVAL_BS = 64
 
 if (string_dataset == "cifar 10"):
     mean = (0.4914, 0.4822, 0.4465)
@@ -189,8 +190,8 @@ if (string_dataset == "cifar 10"):
     train_noaug.transform = valid_data.transform
 
     calib_loader = make_subset_loader(train_noaug, n=512, batch_size=batchsize, seed=0)
-    eval_loader = make_subset_loader(train_noaug, n=1000, batch_size=batchsize, seed=1)
-    test_loader = DataLoader(valid_data, batch_size=batchsize, shuffle=False, drop_last=True)
+    eval_loader = make_subset_loader(train_noaug, n=1000, batch_size=EVAL_BS, seed=1)
+    test_loader = DataLoader(valid_data, batch_size=EVAL_BS, shuffle=False, drop_last=False)
 elif (string_dataset == "ImageNet16-120"):
     mean = (0.485, 0.456, 0.406)
     std = (0.229, 0.224, 0.225)
@@ -203,8 +204,8 @@ elif (string_dataset == "ImageNet16-120"):
     train_noaug.transform = valid_data.transform
 
     calib_loader = make_subset_loader(train_noaug, n=512, batch_size=batchsize, seed=0)
-    eval_loader = make_subset_loader(train_noaug, n=1000, batch_size=batchsize, seed=1)
-    test_loader = DataLoader(valid_data, batch_size=batchsize, shuffle=False, drop_last=True)
+    eval_loader = make_subset_loader(train_noaug, n=1000, batch_size=EVAL_BS, seed=1)
+    test_loader = DataLoader(valid_data, batch_size=EVAL_BS, shuffle=False, drop_last=False)
 else:
     print('dataset not supported')
     exit()
@@ -274,19 +275,24 @@ for idx in idxs:
             def make_evaluate_fn(eval_loader, test_loader):
                 def evaluate_fn(graph):
                     executor = TorchExecutor(graph, device="cpu")
-                    acc = evaluate_top1(executor, eval_loader)
 
-                    # new best candidate -> also measure the real test accuracy now
+                    t0 = time.time()
+                    acc = evaluate_top1(executor, eval_loader)
+                    print(f"[eval] eval_acc={acc * 100:.2f}%  took {time.time() - t0:.1f}s", flush=True)
+
                     if acc > best["eval_acc"]:
                         best["eval_acc"] = acc
+                        t0 = time.time()
                         best["test_acc"] = evaluate_top1(executor, test_loader)
+                        print(f"[test] test_acc={best['test_acc'] * 100:.2f}%  took {time.time() - t0:.1f}s",
+                              flush=True)
 
                     return acc, {"top1": acc}
 
                 return evaluate_fn
 
 
-            setting = AutoQuantSearchSetting()
+            setting = AutoQuantSearchSetting(search_mode="fast", num_of_candidates=5, run_dir=f"{model_path}/autoquant/model{idx}_{seed}")
             setting.score_direction = "maximize"  # accuracy: higher is better
 
             results = espdl_auto_quantize_onnx(
