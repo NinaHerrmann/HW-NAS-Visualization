@@ -38,6 +38,9 @@ def build_parser():
     p.add_argument('--resultpath',
                    type=str,
                    help='resultfile for accuracy')
+    p.add_argument('--datapath',
+                   type=str,
+                   help='datapath for accuracy')
     return p
 
 def parse_args():
@@ -168,6 +171,7 @@ idxs = args.nums_parsed
 model_path = args.modelpath
 resultpath = args.resultpath
 weightpath = args.weightpath
+datapath = args.datapath
 string_dataset = 'ImageNet16-120'
 batchsize = 1
 
@@ -178,17 +182,22 @@ if (string_dataset == "cifar 10"):
     transform = transforms.Compose(
         [transforms.ToTensor(),
         transforms.Normalize(mean, std)])
-    testset = torchvision.datasets.CIFAR10(root=f'{resultpath}/data', train=False, download=True, transform=transform)
-    calib_loader = DataLoader(
-        testset, batch_size=batchsize, shuffle=False, drop_last=True
-    )
-if (string_dataset == "ImageNet16-120"):
+    root = f'{datapath}/cifar10'
+
+    train_data, valid_data, xshape, class_num = get_datasets('cifar10', root, cutout=0)
+    train_noaug = copy.deepcopy(train_data)
+    train_noaug.transform = valid_data.transform
+
+    calib_loader = make_subset_loader(train_noaug, n=512, batch_size=batchsize, seed=0)
+    eval_loader = make_subset_loader(train_noaug, n=1000, batch_size=batchsize, seed=1)
+    test_loader = DataLoader(valid_data, batch_size=batchsize, shuffle=False, drop_last=True)
+elif (string_dataset == "ImageNet16-120"):
     mean = (0.485, 0.456, 0.406)
     std = (0.229, 0.224, 0.225)
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean, std)])
-    root = f'{resultpath}/data/ImageNet16'
+    root = f'{datapath}/ImageNet16'
     train_data, valid_data, xshape, class_num = get_datasets('ImageNet16-120', root, cutout=0)
     train_noaug = copy.deepcopy(train_data)
     train_noaug.transform = valid_data.transform
@@ -196,7 +205,9 @@ if (string_dataset == "ImageNet16-120"):
     calib_loader = make_subset_loader(train_noaug, n=512, batch_size=batchsize, seed=0)
     eval_loader = make_subset_loader(train_noaug, n=1000, batch_size=batchsize, seed=1)
     test_loader = DataLoader(valid_data, batch_size=batchsize, shuffle=False, drop_last=True)
-
+else:
+    print('dataset not supported')
+    exit()
 
 
 def collate_x_only(input):
@@ -291,10 +302,6 @@ for idx in idxs:
                 device="cpu",
                 verbose=0,
             )
-
-            # inspect what the result dicts contain (keys depend on the version)
-            for r in results:
-                print(r)
 
             accqu = best["test_acc"]
 
