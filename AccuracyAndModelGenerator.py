@@ -1,4 +1,5 @@
 import bz2
+import copy
 import os
 import pickle
 import time
@@ -6,17 +7,19 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 from esp_ppq import TorchExecutor, QuantizationSettingFactory
-from esp_ppq.api import espdl_quantize_onnx, espdl_quantize_torch
+from esp_ppq.api import espdl_quantize_onnx, espdl_quantize_torch, espdl_auto_quantize_onnx, AutoQuantSearchSetting
 from torch.utils.data import DataLoader, TensorDataset
 import argparse
 import numpy as np
 import pandas as pd
+from torch.utils.data import Subset
 from hw_nas_bench_api import HWNASBenchAPI as HWAPI
 from xautodl.models import get_cell_based_tiny_net  # this module is in AutoDL-Projects/lib/models
-
+from xautodl.datasets import get_datasets
 target = "esp32s3"
 
 quant_setting = QuantizationSettingFactory.espdl_setting()
+
 # quant_setting.equalization = True
 # quant_setting.equalization_setting.iterations = 5
 # quant_setting.equalization_setting.value_threshold = 0.5
@@ -132,6 +135,31 @@ def load_imagenet16(root, split='train', transform=None):
         dataset = TensorDataset(imgs, targets)
 
     return dataset
+def load_imagenet16_120(root, split='val', num_classes=120):
+    files = ([os.path.join(root, f'train_data_batch_{i}') for i in range(1, 11)]
+             if split == 'train' else [os.path.join(root, 'val_data')])
+
+    data_lst, label_lst = [], []
+    for p in files:
+        with open(p, 'rb') as f:
+            batch = pickle.load(f, encoding='latin1')
+        lbl = np.array(batch['labels'])
+        mask = (lbl >= 1) & (lbl <= num_classes)          # filter per file
+        data_lst.append(batch['data'][mask])
+        label_lst.append(lbl[mask] - 1)                   # 1-based -> 0-based
+        del batch
+    data, label = np.concatenate(data_lst), np.concatenate(label_lst)
+
+    imgs = torch.from_numpy(data.reshape(-1, 3, 16, 16).astype(np.float32) / 255.0)
+    mean = torch.tensor([122.68, 116.66, 104.01]).view(1, 3, 1, 1) / 255
+    std  = torch.tensor([63.22, 61.26, 65.09]).view(1, 3, 1, 1) / 255
+    imgs = (imgs - mean) / std
+    return TensorDataset(imgs, torch.from_numpy(label).long())
+def make_subset_loader(dataset, n, batch_size, seed=0):
+    g = torch.Generator().manual_seed(seed)              # same subset for every model
+    idx = torch.randperm(len(dataset), generator=g)[:n].tolist()
+    return DataLoader(Subset(dataset, idx), batch_size=batch_size,
+                      shuffle=False, drop_last=True)
 
 hw_api = HWAPI("HW-NAS-Bench-v1_0.pickle", search_space="nasbench201")
 all_data = []
@@ -141,6 +169,8 @@ model_path = args.modelpath
 resultpath = args.resultpath
 weightpath = args.weightpath
 string_dataset = 'ImageNet16-120'
+batchsize = 1
+
 if (string_dataset == "cifar 10"):
     mean = (0.4914, 0.4822, 0.4465)
     std  = (0.2470, 0.2435, 0.2616)
@@ -149,18 +179,25 @@ if (string_dataset == "cifar 10"):
         [transforms.ToTensor(),
         transforms.Normalize(mean, std)])
     testset = torchvision.datasets.CIFAR10(root=f'{resultpath}/data', train=False, download=True, transform=transform)
+    calib_loader = DataLoader(
+        testset, batch_size=batchsize, shuffle=False, drop_last=True
+    )
 if (string_dataset == "ImageNet16-120"):
     mean = (0.485, 0.456, 0.406)
     std = (0.229, 0.224, 0.225)
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean, std)])
-    testset = load_imagenet16(root=f'{resultpath}/data/ImageNet16', split='val', transform=transform)
+    root = f'{resultpath}/data/ImageNet16'
+    train_data, valid_data, xshape, class_num = get_datasets('ImageNet16-120', root, cutout=0)
+    train_noaug = copy.deepcopy(train_data)
+    train_noaug.transform = valid_data.transform
 
-batchsize = 1
-calib_loader = DataLoader(
-    testset, batch_size=batchsize, shuffle=False, drop_last=True
-)
+    calib_loader = make_subset_loader(train_noaug, n=512, batch_size=batchsize, seed=0)
+    eval_loader = make_subset_loader(train_noaug, n=1000, batch_size=batchsize, seed=1)
+    test_loader = DataLoader(valid_data, batch_size=batchsize, shuffle=False, drop_last=True)
+
+
 
 def collate_x_only(input):
     return input[0]
@@ -200,23 +237,75 @@ for idx in idxs:
             ourdict = data[key]["all_results"][(wip_dataset, seed)]["net_state_dict"]
             network = get_cell_based_tiny_net(netconfig)
             network.load_state_dict(ourdict)
-            x = torch.rand([1, 3, 32, 32], dtype=torch.float32)
             network.eval()
-            init_end = time.process_time()
-            acc = evaluate_top1(network, calib_loader)
-            transform_start = time.process_time()
-            quant_ppq_graph = espdl_quantize_torch(network, f"{model_path}/espdl/model{idx}_{seed}.espdl",
-                                                collate_fn=collate_x_only, calib_dataloader=calib_loader, calib_steps=32,
-                                                error_report=False, verbose=0,
-                                                input_shape=[batchsize, 3, 32, 32])  # setting=quant_setting)
-            executor = TorchExecutor(quant_ppq_graph, device='cpu')
-            dataset = calib_loader.dataset
-            transform_end = time.process_time()
-            accqu = evaluate_top1(executor, calib_loader)
-            if not os.path.exists(f'{resultpath}/result.csv'):
-                with open('result.csv', 'a', encoding='utf-8') as f:
-                    f.write("idx,seed,dataset,recorded_test_acc,quant_test_acc\n")
-            line = f"{idx},{seed},{wip_dataset},{acc * 100:.2f},{accqu * 100:.2f}\n"
+            acc = evaluate_top1(network, test_loader)
+
+            onnx_file = f"{model_path}/onnx/model{idx}_{seed}.onnx"
+            espdl_file = f"{model_path}/espdl/model{idx}_{seed}.espdl"
+            INPUT_SHAPE = [3, 16, 16]  # ImageNet16 is 16x16, not 32x32!
+            EXPORT_SHAPE = [batchsize] + INPUT_SHAPE
+
+            # 1) export torch -> onnx
+            dummy = torch.randn(EXPORT_SHAPE)
+            torch.onnx.export(
+                network, dummy, onnx_file,
+                opset_version=13,
+                dynamo=False,
+                input_names=["input"],
+                output_names=["features", "logits"],  # tiny_net returns (features, logits)
+                do_constant_folding=True,
+            )
+
+            # 2) auto quantization
+            best = {"eval_acc": -1.0, "test_acc": None}
+
+
+            def make_evaluate_fn(eval_loader, test_loader):
+                def evaluate_fn(graph):
+                    executor = TorchExecutor(graph, device="cpu")
+                    acc = evaluate_top1(executor, eval_loader)
+
+                    # new best candidate -> also measure the real test accuracy now
+                    if acc > best["eval_acc"]:
+                        best["eval_acc"] = acc
+                        best["test_acc"] = evaluate_top1(executor, test_loader)
+
+                    return acc, {"top1": acc}
+
+                return evaluate_fn
+
+
+            setting = AutoQuantSearchSetting()
+            setting.score_direction = "maximize"  # accuracy: higher is better
+
+            results = espdl_auto_quantize_onnx(
+                onnx_import_file=onnx_file,
+                espdl_export_file=espdl_file,
+                calib_dataloader=calib_loader,
+                calib_steps=32,
+                input_shape=INPUT_SHAPE,  # [1, 3, 16, 16]
+                evaluate_fn=make_evaluate_fn(eval_loader, test_loader),
+                target=target,  # "esp32s3"
+                collate_fn=collate_x_only,
+                setting=setting,
+                device="cpu",
+                verbose=0,
+            )
+
+            # inspect what the result dicts contain (keys depend on the version)
+            for r in results:
+                print(r)
+
+            accqu = best["test_acc"]
+
+            # 3) write results (no `continue` anymore)
+            result_file = f'{resultpath}/result.csv'
+            if not os.path.exists(result_file):
+                with open(result_file, 'w', encoding='utf-8') as f:
+                    f.write("idx,seed,dataset,float_test_acc,quant_eval_acc,quant_test_acc\n")
+
+            line = (f"{idx},{seed},{wip_dataset},{acc * 100:.2f},"
+                    f"{best['eval_acc'] * 100:.2f},{accqu * 100:.2f}\n")
             print(line)
-            with open(f'{resultpath}/result.csv', 'a', encoding='utf-8') as f:
+            with open(result_file, 'a', encoding='utf-8') as f:
                 f.write(line)
