@@ -16,8 +16,7 @@ fi
 model_dir="${1}"
 result_dir="${2}"
 chunk_file="${3}"
-weight_path=/mnt/dss_project/nherrmann/memorygenerator/NAS-Bench-201-v1_1-096897.pth
-# weight_path=/scratch/tmp/n_herr03/NATS_Benchmark/NATS-tss-v1_0-3ffb9-full
+weight_path=/mnt/dss_lsc_europe/NinaExperiments/MemoryGenerator/weights/NAS-Bench-201-v1_1-096897
 cd ~/MemoryGenerator/
 # Ensure output directory exists
 python MissingJobsppq.py -file "${chunk_file}" --modelpath "${model_dir}" --resultpath "${result_dir}" --weightpath "${weight_path}"

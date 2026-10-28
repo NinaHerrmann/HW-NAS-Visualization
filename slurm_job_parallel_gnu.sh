@@ -28,7 +28,7 @@ export MKL_NUM_THREADS=$NUMBER_OF_CPUS_PER_JOB
 export OMP_NUM_THREADS=$NUMBER_OF_CPUS_PER_JOB
 # TODO: Or your folders
 home="$HOME"/MemoryGenerator
-dssmemory="/mnt/dss_project/nherrmann/MemoryGenerator"
+dssmemory="/mnt/dss_lsc_europe/NinaExperiments/MemoryGenerator"
 cd $home
 pip install -r ./requirements_memorygenerator.txt
 log_path="$wd"/report/sublogs/hwnas_"$SLURM_JOB_ID"

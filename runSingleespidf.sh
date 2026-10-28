@@ -5,16 +5,15 @@ chunk="${chunk_file##*_}"     # remove everything up to last _
 chunk="${chunk%.csv}" 
 #echo "$chunk_file" | sed -E 's/.*_([0-9]+)\.txt/\1/'
 #chunk="$chunk_file" | sed -E 's/.*_([0-9]+)\.txt/\1/'
-weight_path=/scratch/tmp/n_herr03/NATS_Benchmark/NATS-tss-v1_0-3ffb9-full
 echo ${chunk}
 echo ${chunk_file}
-cd "~/MemoryGenerator/"
+cd "/home/nherrmann/MemoryGenerator"
 # Ensure output directory exists
 
 chunk_file="${1}"
 model_dir="${2}"
 result_dir="${3}"
-weight_path=/mnt/dss_project/nherrmann/memorygenerator/NAS-Bench-201-v1_1-096897.pth
+weight_path=/mnt/dss_lsc_europe/NinaExperiments/MemoryGenerator/weights/NAS-Bench-201-v1_1-096897
 cd ~/MemoryGenerator/ || exit
 # Ensure output directory exists
 python3 AccuracyAndModelGenerator.py --file "${chunk_file}" --modelpath "${model_dir}" --resultpath "${result_dir}" --weightpath "${weight_path}"

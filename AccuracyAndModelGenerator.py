@@ -17,7 +17,7 @@ from xautodl.models import get_cell_based_tiny_net  # this module is in AutoDL-P
 target = "esp32s3"
 
 quant_setting = QuantizationSettingFactory.espdl_setting()
-quant_setting.equalization = True
+# quant_setting.equalization = True
 # quant_setting.equalization_setting.iterations = 5
 # quant_setting.equalization_setting.value_threshold = 0.5
 # quant_setting.equalization_setting.opt_level = 2
